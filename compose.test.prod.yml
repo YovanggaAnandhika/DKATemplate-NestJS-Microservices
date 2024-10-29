@@ -1,11 +1,11 @@
-name: dka-microservices-account
+name: <your-project-name>
 
 services:
-
   app:
-    image: dka:services-account
-    container_name: dka-microservices-account-app
-    hostname: account.services.dkaapis.com
+    build:
+      context: .
+    container_name: <your-container-name>
+    hostname: <your-container-hostname-name>
     working_dir: /home/app
     logging:
       driver: local
@@ -13,55 +13,29 @@ services:
         max-size: 10m
         max-file: 10
     environment:
-      DKA_DB_MONGO_HOST: db.account.services.dkaapis.com
-      DKA_DB_MONGO_USERNAME: developer
-      DKA_DB_MONGO_PASSWORD: Cyberhack2010
-      DKA_DB_MONGO_DATABASE: dka-account
-      # -----------------------------------------------------------------
-      DKA_SERVER_HOST: 0.0.0.0
-      DKA_SERVER_PORT: 80
-      # -----------------------------------------------------------------
-      DKA_HOST_SESSION_SERVICE: session.services.dkaapis.com
-      DKA_PORT_SESSION_SERVICE: 80
-      # -----------------------------------------------------------------
-      # -----------------------------------------------------------------
-      DKA_MQTT_BROKER_CLIENT_ID: dka-account
-      DKA_MQTT_BROKER_PROTOCOL: mqtt
-      DKA_MQTT_BROKER_HOST: mqtt.dkaapis.com
-      DKA_MQTT_BROKER_PORT: 1883
-      # -----------------------------------------------------------------
+      NODE_ENV: development
     deploy:
       resources:
         limits:
           memory: 800M
         reservations:
-          memory: 200M
+          memory: 500M
     restart: always
     volumes:
-      - type: volume
-        source: account-app-data
+      - type: bind
+        source: .
         target: /home/app
-      - type: bind
-        source: /etc/localtime
-        target: /etc/localtime
-        read_only: true
-      - type: bind
-        source: /etc/timezone
-        target: /etc/timezone
-        read_only: true
-
-    command: yarn run start:prod
+    command: yarn run start
     networks:
-      - dka-microservices-account-network
-      - dka-microservice-external
+      - default
 
   mongo:
     image: mongo:latest
-    container_name: dka-microservices-account-mongo
-    hostname: db.account.services.dkaapis.com
+    container_name: <your-container-name>
+    hostname: <your-container-hostname-name>
     environment:
-      MONGO_INITDB_ROOT_USERNAME: developer
-      MONGO_INITDB_ROOT_PASSWORD: Cyberhack2010
+      MONGO_INITDB_ROOT_USERNAME: <username>
+      MONGO_INITDB_ROOT_PASSWORD: <password>
     deploy:
       resources:
         limits:
@@ -73,9 +47,9 @@ services:
     restart: always
     ports:
       - target: 27017
-        published: 27018
-        host_ip: 0.0.0.0
+        published: 27017
         protocol: tcp
+        host_ip: 0.0.0.0
     volumes:
       - type: volume
         source: mongodb-data
@@ -84,28 +58,16 @@ services:
         source: ./.config/mongo/mongod.conf
         target: /etc/mongod.conf
         read_only: true
-      - type: bind
-        source: /etc/localtime
-        target: /etc/localtime
-        read_only: true
-      - type: bind
-        source: /etc/timezone
-        target: /etc/timezone
-        read_only: true
     command: mongod --config /etc/mongod.conf
     networks:
-      - dka-microservices-account-network
+      - default
 
 volumes:
-  account-app-data:
-    driver: local
   mongodb-data:
     driver: local
   dka-ssl-data:
     driver: local
 
 networks:
-  dka-microservices-account-network:
+  default:
     driver: bridge
-  dka-microservice-external:
-    external: true

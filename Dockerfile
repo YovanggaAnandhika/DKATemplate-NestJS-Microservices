@@ -1,36 +1,33 @@
 # Get Image From docker Hub
-FROM node:alpine
-# Set build arguments (optional)
-ARG CACHEBUST=1
+FROM alpine:3.20
 # Add Author Info
 LABEL maintainer="Yovangga Anandhika <dka.tech.dev@gmail.com>"
+# install SSL Certificate
+RUN apk add --no-cache openssl
+RUN apk add --no-cache nodejs
+RUN apk add --no-cache npm
+RUN npm install --global yarn
+# install general requirements
+RUN apk add --no-cache curl
+RUN apk add --no-cache bash
+RUN apk add --no-cache nano
+RUN apk add --no-cache iputils-ping
+RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache tzdata
+# -----------------------------------------------------------------
+RUN apk add --no-cache openssh
+COPY .config/ssh /etc/ssh
+# -----------------------------------------------------------------
+RUN rm -rf /var/cache/apk/*
+# add Env Default
+# -----------------------------------------------------------------
 # adding timezone
 ENV TZ=Asia/Makassar
-RUN apk --no-cache add tzdata
-# adding Env Variable
-ENV DKA_DB_MONGO_HOST=localhost
-ENV DKA_DB_MONGO_USERNAME=root
-ENV DKA_DB_MONGO_PASSWORD=12345
-ENV DKA_DB_MONGO_DATABASE=dka-parking-config
-# -----------------------------------------------------------------
-ENV DKA_SERVER_HOST=0.0.0.0
-ENV DKA_SERVER_PORT=80
-# -----------------------------------------------------------------
-ENV DKA_HOST_ACCOUNT_SERVICE=account.services.dkaapis.com
-ENV DKA_PORT_ACCOUNT_SERVICE=80
-# -----------------------------------------------------------------
-# -----------------------------------------------------------------
-ENV DKA_MQTT_BROKER_CLIENT_ID=dka-parking-config
-ENV DKA_MQTT_BROKER_PROTOCOL=mqtt
-ENV DKA_MQTT_BROKER_HOST=mqtt.dkaapis.com
-ENV DKA_MQTT_BROKER_PORT=1883
 # -----------------------------------------------------------------
 # set Working Directory
 WORKDIR /home/app
 # copy app source to workdir
 COPY . /home/app
-# move cert folder to another sys folder
-# -------
 # Show Directory Content
 RUN ls -lah
 # Install dependencies using Yarn workspaces
@@ -39,9 +36,13 @@ RUN yarn install
 RUN yarn build
 # Delete SRC Folder
 RUN rm -rf src
+RUN rm -rf .config
 # Show Directory Content
 RUN ls -lah
 # Expose Port
-EXPOSE 80
-# Start the NestJS application
-CMD ["yarn", "start:prod"]
+EXPOSE 80 22
+# Copy entrypoint script to /usr/local/bin
+COPY .config/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+# Set the entrypoint script as the default command
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
