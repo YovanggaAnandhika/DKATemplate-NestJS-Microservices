@@ -1,0 +1,129 @@
+name: dka-microservices-parking-config
+
+services:
+
+  app:
+    image: node:alpine
+    profiles:
+      - app
+    hostname: config.parking.services.dkaapis.com
+    container_name: dka-microservices-parking-config-app
+    working_dir: /home/app
+    environment:
+      DKA_DB_MONGO_HOST: server.dkaapis.com
+      DKA_DB_MONGO_USERNAME: developer
+      DKA_DB_MONGO_PASSWORD: Cyberhack2010
+      DKA_DB_MONGO_DATABASE: dka-parking-config
+      # -----------------------------------------------------------------
+      DKA_SERVER_HOST: 0.0.0.0
+      DKA_SERVER_PORT: 80
+      # -----------------------------------------------------------------
+      TZ: Asia/Makassar
+      # -----------------------------------------------------------------
+      DKA_HOST_ACCOUNT_SERVICE: account.services.dkaapis.com
+      DKA_PORT_ACCOUNT_SERVICE: 80
+      # -----------------------------------------------------------------
+      # -----------------------------------------------------------------
+      DKA_MQTT_BROKER_CLIENT_ID: dka-parking-config
+      DKA_MQTT_BROKER_PROTOCOL: mqtt
+      DKA_MQTT_BROKER_HOST: mqtt.dkaapis.com
+      DKA_MQTT_BROKER_PORT: 1883
+      # -----------------------------------------------------------------
+    restart: always
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 10
+    deploy:
+      resources:
+        limits:
+          memory: 800M
+        reservations:
+          memory: 500M
+    volumes:
+      - type: bind
+        source: .
+        target: /home/app
+      - type: bind
+        source: ./../../node_modules
+        target: /home/app/node_modules
+      - type: bind
+        source: ./.config
+        target: /home/.config
+      - type: bind
+        source: ./../../yarn.lock
+        target: /home/app/yarn.lock
+      - type: bind
+        source: /etc/localtime
+        target: /etc/localtime
+        read_only: true
+      - type: bind
+        source: /etc/timezone
+        target: /etc/timezone
+        read_only: true
+
+    command: yarn run start
+    networks:
+      - dka-microservices-parking-config-network
+      - dka-microservice-external
+
+  mongo:
+    image: mongo:latest
+    profiles:
+      - db
+    container_name: dka-microservices-parking-config-mongo
+    hostname: db.config.parking.services.dkaapis.com
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: developer
+      MONGO_INITDB_ROOT_PASSWORD: Cyberhack2010
+    ports:
+      - target: 27017
+        published: 27019
+        protocol: tcp
+        host_ip: 0.0.0.0
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: 10
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 300M
+        reservations:
+          cpus: '0.25'
+          memory: 100M
+    volumes:
+      - type: volume
+        source: mongodb-data
+        target: /data/db
+      - type: bind
+        source: ./.config/mongo/mongod.conf
+        target: /etc/mongod.conf
+        read_only: true
+      - type: bind
+        source: /etc/localtime
+        target: /etc/localtime
+        read_only: true
+      - type: bind
+        source: /etc/timezone
+        target: /etc/timezone
+        read_only: true
+    command: mongod --config /etc/mongod.conf
+    networks:
+      - dka-microservices-parking-config-network
+
+volumes:
+  mongodb-data:
+    driver: local
+  dka-ssl-data:
+    driver: local
+
+networks:
+  dka-microservices-parking-config-network:
+    driver: bridge
+  dka-microservice-external:
+    external: true
